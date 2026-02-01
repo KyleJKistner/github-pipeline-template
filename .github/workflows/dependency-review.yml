@@ -4,9 +4,12 @@
 # - Known security vulnerabilities
 # - License compliance issues
 #
-# Note: This action is available for:
-# - All public repositories
-# - Private repositories with GitHub Advanced Security license
+# Note: This action requires:
+# - Public repositories: Works out of the box
+# - Private repositories: Requires GitHub Advanced Security license
+#   and dependency graph to be enabled
+#
+# For private repos without GHAS, this workflow will be skipped.
 #
 # See: https://docs.github.com/en/code-security/supply-chain-security/understanding-your-software-supply-chain/about-dependency-review
 
@@ -25,6 +28,8 @@ jobs:
     name: Dependency Review
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # Skip for private repos without GHAS
+    if: github.repository_visibility == 'public' || vars.GHAS_ENABLED == 'true'
 
     steps:
       - name: Checkout
