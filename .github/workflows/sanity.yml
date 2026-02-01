@@ -37,7 +37,9 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Run actionlint
-        uses: rhysd/actionlint-action@7aa4ffaab55f78f2ae5f60ceef72d49f46d0eb41 # v1.7.3
+        run: |
+          bash <(curl https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+          ./actionlint -color
 
   repo-hygiene:
     name: Repository Hygiene
