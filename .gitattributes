@@ -1,0 +1,48 @@
+# Auto detect text files and normalize line endings
+* text=auto
+
+# Force LF line endings for shell scripts
+*.sh text eol=lf
+*.bash text eol=lf
+
+# Force LF for build/config files
+Makefile text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.js text eol=lf
+*.ts text eol=lf
+*.jsx text eol=lf
+*.tsx text eol=lf
+*.py text eol=lf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.zip binary
+*.gz binary
+*.tar binary
+
+# Linguist overrides for GitHub
+*.md linguist-documentation
+docs/** linguist-documentation
+LICENSE linguist-documentation
+CHANGELOG.md linguist-generated
+
+# Diff settings
+*.lock linguist-generated -diff
+package-lock.json linguist-generated -diff
+pnpm-lock.yaml linguist-generated -diff
+yarn.lock linguist-generated -diff

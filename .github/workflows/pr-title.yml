@@ -1,0 +1,45 @@
+# PR Title Validation Workflow
+#
+# Validates that PR titles follow Conventional Commits format.
+# This is important because we use squash merges, so the PR title
+# becomes the commit message and determines version bumps.
+#
+# SECURITY: Uses env variable pattern to safely handle untrusted PR title
+# See: https://github.blog/security/vulnerability-research/how-to-catch-github-actions-workflow-injections-before-attackers-do/
+#
+# See: https://www.conventionalcommits.org/
+
+name: PR Title
+
+on:
+  pull_request_target:
+    types: [opened, edited, synchronize]
+
+# Minimal permissions
+permissions:
+  pull-requests: read
+
+jobs:
+  validate:
+    name: Validate PR Title
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      # Only checkout our validation script, not the PR code
+      # This is a security measure for pull_request_target
+      - name: Checkout validation script
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          sparse-checkout: scripts/pr_title_check.sh
+          sparse-checkout-cone-mode: false
+
+      - name: Make script executable
+        run: chmod +x scripts/pr_title_check.sh
+
+      # SECURITY: Use env variable to safely pass untrusted PR title
+      # This prevents command injection from malicious PR titles
+      - name: Validate Conventional Commits format
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: ./scripts/pr_title_check.sh "$PR_TITLE"

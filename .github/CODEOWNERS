@@ -1,0 +1,22 @@
+# CODEOWNERS - Define code ownership for automatic review requests
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owners for everything in the repo
+# Replace with your GitHub username or team
+* @KyleJKistner
+
+# Workflow files require explicit approval from maintainers
+# These are security-sensitive and should be carefully reviewed
+.github/workflows/ @KyleJKistner
+
+# Security-sensitive files
+SECURITY.md @KyleJKistner
+.github/dependabot.yml @KyleJKistner
+.github/CODEOWNERS @KyleJKistner
+
+# Documentation can have broader ownership
+# docs/ @your-github-username @docs-team
+
+# Example: Specific directory ownership
+# src/auth/ @security-team
+# src/payments/ @payments-team

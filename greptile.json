@@ -1,0 +1,57 @@
+{
+  "statusCheck": true,
+  "triggerOnUpdates": true,
+  "strictness": 2,
+  "commentTypes": ["logic", "syntax", "info"],
+  "disabledLabels": ["skip-ai-review", "docs-only"],
+  "fileChangeLimit": 80,
+  "ignorePatterns": "artifacts/**\ndist/**\nbuild/**\nnode_modules/**\n*.lock\nCHANGELOG.md\nLICENSE\n",
+  "instructions": "Enforce docs/style_guide.md and docs/testing_policy.md. Prefer minimal diffs. Flag security issues, correctness bugs, and missing tests. If you recommend a change, also recommend a test that would fail before and pass after.",
+  "customContext": {
+    "files": [
+      {
+        "path": "docs/style_guide.md",
+        "description": "Repository style guide - coding standards and conventions",
+        "scope": ["**/*"]
+      },
+      {
+        "path": "docs/testing_policy.md",
+        "description": "Testing and coverage policy - test requirements and thresholds",
+        "scope": ["**/*"]
+      },
+      {
+        "path": "docs/security_baseline.md",
+        "description": "Security requirements and threat model",
+        "scope": [".github/**", "scripts/**"]
+      }
+    ],
+    "rules": [
+      {
+        "rule": "Do not suggest style-only changes if formatter/linter already enforces it.",
+        "scope": ["**/*"]
+      },
+      {
+        "rule": "Security-sensitive changes must include a brief risk note in the PR description.",
+        "scope": [".github/**", "scripts/**", "**/auth/**", "**/security/**"]
+      },
+      {
+        "rule": "New public functions must have explicit return types (TypeScript) or type hints (Python).",
+        "scope": ["**/*.ts", "**/*.tsx", "**/*.py"]
+      },
+      {
+        "rule": "Test files must follow naming convention: *.test.ts, *.test.js, or test_*.py",
+        "scope": ["**/*.test.*", "**/test_*"]
+      }
+    ],
+    "other": [
+      {
+        "content": "This repo uses squash merges and Conventional Commit PR titles for Release Please. Review comments should reference PR-title semantics when release impact is relevant.",
+        "scope": ["**/*"]
+      },
+      {
+        "content": "All GitHub Actions must be pinned to full SHA (not tags) for security. See docs/security_baseline.md for details.",
+        "scope": [".github/workflows/**"]
+      }
+    ]
+  }
+}

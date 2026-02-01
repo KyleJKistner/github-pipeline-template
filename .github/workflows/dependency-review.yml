@@ -1,0 +1,47 @@
+# Dependency Review Workflow
+#
+# Scans dependency changes in pull requests for:
+# - Known security vulnerabilities
+# - License compliance issues
+#
+# Note: This action is available for:
+# - All public repositories
+# - Private repositories with GitHub Advanced Security license
+#
+# See: https://docs.github.com/en/code-security/supply-chain-security/understanding-your-software-supply-chain/about-dependency-review
+
+name: Dependency Review
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Dependency Review
+        uses: actions/dependency-review-action@4081bf99e2866ebe428f49c1e5a1e8b3ae5a4c22 # v4.5.0
+        with:
+          # Fail on high severity vulnerabilities
+          fail-on-severity: high
+
+          # Block problematic licenses
+          # GPL-3.0 and AGPL-3.0 have copyleft requirements that may not be compatible
+          deny-licenses: GPL-3.0, AGPL-3.0
+
+          # Post a summary comment on the PR
+          comment-summary-in-pr: always
+
+          # Warn about moderate severity (but don't fail)
+          warn-only: false
