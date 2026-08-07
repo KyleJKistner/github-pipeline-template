@@ -1,0 +1,68 @@
+name: H9.2.1 deterministic fallback validation
+
+on:
+  push:
+    branches: [research/sqisign-h92-validation]
+    paths:
+      - validation/run_h921_fallback.sage
+      - validation/apply_thetav_isog_patch.py
+      - .github/workflows/h921-fallback-validation.yml
+  pull_request:
+    branches: [main]
+    paths:
+      - validation/run_h921_fallback.sage
+      - validation/apply_thetav_isog_patch.py
+      - .github/workflows/h921-fallback-validation.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sage-reference:
+    name: Dequay-Lubicz g=2 m=4 d=2
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Checkout validation harness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Checkout pinned thetAV implementation
+        run: |
+          git clone https://github.com/AntoineDeq/thetAV.git thetAV-src
+          cd thetAV-src
+          git checkout e39215c295202f792eff0609e951345a60a66d88
+          test "$(git rev-parse HEAD)" = e39215c295202f792eff0609e951345a60a66d88
+
+      - name: Repair point-evaluation composition
+        run: |
+          python3 validation/apply_thetav_isog_patch.py \
+            thetAV-src/thetAV/theta_null_point.py
+          cd thetAV-src
+          git diff --check
+          git diff -- thetAV/theta_null_point.py | tee ../thetav-isog-eval.patch.diff
+
+      - name: Run pinned Sage validation container
+        run: |
+          docker run --rm --user 0 \
+            --entrypoint bash \
+            -e HOME=/tmp/sagehome \
+            -e H921_RESULT=/work/h921_fallback_results.json \
+            -v "$PWD:/work" -w /work \
+            sagemath/sagemath:10.5 -lc '
+              set -euo pipefail
+              mkdir -p "$HOME"
+              sage -pip install --user -e ./thetAV-src
+              sage validation/run_h921_fallback.sage
+            '
+
+      - name: Upload proof-of-execution artifacts
+        if: always()
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882
+        with:
+          name: h921-fallback-${{ github.run_id }}
+          path: |
+            h921_fallback_results.json
+            thetav-isog-eval.patch.diff
+          if-no-files-found: warn
+          retention-days: 14
