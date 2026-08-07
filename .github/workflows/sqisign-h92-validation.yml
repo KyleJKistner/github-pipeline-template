@@ -1,0 +1,117 @@
+name: SQIsign H9.2 validation
+
+on:
+  push:
+    branches: [research/sqisign-h92-validation]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sqisign-h92-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  reference:
+    name: Reference ${{ matrix.build_type }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      matrix:
+        build_type: [Release, Debug, ASAN, UBSAN]
+    steps:
+      - name: Checkout validation harness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build libgmp-dev
+
+      - name: Checkout pinned SQIsign source
+        run: |
+          git clone https://github.com/SQISign/the-sqisign.git sqisign
+          cd sqisign
+          git checkout dd133d7aca576c361a270c8e6434832535b42ecc
+          test "$(git rev-parse HEAD)" = dd133d7aca576c361a270c8e6434832535b42ecc
+
+      - name: Apply deterministic H9.2.2 repair
+        run: |
+          python3 validation/apply_h922_patch.py sqisign/src/hd/ref/lvlx/theta_isogenies.c
+          cd sqisign
+          git diff --check
+          git diff -- src/hd/ref/lvlx/theta_isogenies.c | tee ../h922.patch.diff
+
+      - name: Configure
+        run: |
+          cmake -S sqisign -B build-${{ matrix.build_type }} -G Ninja \
+            -DSQISIGN_BUILD_TYPE=ref \
+            -DGMP_LIBRARY=SYSTEM \
+            -DENABLE_SIGN=ON \
+            -DENABLE_TESTS=ON \
+            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+
+      - name: Build
+        run: cmake --build build-${{ matrix.build_type }} --parallel 2
+
+      - name: Run complete test suite
+        env:
+          ASAN_OPTIONS: detect_leaks=1:halt_on_error=1
+          UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+        run: ctest --test-dir build-${{ matrix.build_type }} --output-on-failure --timeout 7200 -j 2
+
+      - name: Upload source diff and test logs
+        if: always()
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882
+        with:
+          name: h922-reference-${{ matrix.build_type }}-${{ github.run_id }}
+          path: |
+            h922.patch.diff
+            build-${{ matrix.build_type }}/Testing/Temporary/LastTest.log
+          if-no-files-found: warn
+          retention-days: 14
+
+  broadwell:
+    name: Broadwell release
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Checkout validation harness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build libgmp-dev
+
+      - name: Checkout and patch pinned SQIsign
+        run: |
+          git clone https://github.com/SQISign/the-sqisign.git sqisign
+          cd sqisign
+          git checkout dd133d7aca576c361a270c8e6434832535b42ecc
+          cd ..
+          python3 validation/apply_h922_patch.py sqisign/src/hd/ref/lvlx/theta_isogenies.c
+
+      - name: Configure and build Broadwell backend
+        run: |
+          cmake -S sqisign -B build-broadwell -G Ninja \
+            -DSQISIGN_BUILD_TYPE=broadwell \
+            -DGMP_LIBRARY=SYSTEM \
+            -DENABLE_SIGN=ON \
+            -DENABLE_TESTS=ON \
+            -DCMAKE_BUILD_TYPE=Release
+          cmake --build build-broadwell --parallel 2
+
+      - name: Run KAT and self-tests on all levels
+        run: ctest --test-dir build-broadwell --output-on-failure --timeout 7200 -R 'KAT|SELFTEST' -j 2
+
+      - name: Upload test log
+        if: always()
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882
+        with:
+          name: h922-broadwell-${{ github.run_id }}
+          path: build-broadwell/Testing/Temporary/LastTest.log
+          if-no-files-found: warn
+          retention-days: 14
