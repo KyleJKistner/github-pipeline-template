@@ -23,14 +23,11 @@ jobs:
     name: Dequay-Lubicz g=2 m=4 d=2
     runs-on: ubuntu-latest
     timeout-minutes: 360
-    container:
-      image: sagemath/sagemath:10.5
     steps:
       - name: Checkout validation harness
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
       - name: Checkout pinned thetAV implementation
-        shell: bash
         run: |
           git clone https://github.com/AntoineDeq/thetAV.git thetAV-src
           cd thetAV-src
@@ -38,23 +35,26 @@ jobs:
           test "$(git rev-parse HEAD)" = e39215c295202f792eff0609e951345a60a66d88
 
       - name: Repair point-evaluation composition
-        shell: bash
         run: |
-          sage -python validation/apply_thetav_isog_patch.py \
+          python3 validation/apply_thetav_isog_patch.py \
             thetAV-src/thetAV/theta_null_point.py
           cd thetAV-src
           git diff --check
           git diff -- thetAV/theta_null_point.py | tee ../thetav-isog-eval.patch.diff
 
-      - name: Install pinned package
-        shell: bash
-        run: sage -pip install --user -e ./thetAV-src
-
-      - name: Run generic and product fallback tests
-        shell: bash
-        env:
-          H921_RESULT: h921_fallback_results.json
-        run: sage validation/run_h921_fallback.sage
+      - name: Run pinned Sage validation container
+        run: |
+          docker run --rm --user 0 \
+            --entrypoint bash \
+            -e HOME=/tmp/sagehome \
+            -e H921_RESULT=/work/h921_fallback_results.json \
+            -v "$PWD:/work" -w /work \
+            sagemath/sagemath:10.5 -lc '
+              set -euo pipefail
+              mkdir -p "$HOME"
+              sage -pip install --user -e ./thetAV-src
+              sage validation/run_h921_fallback.sage
+            '
 
       - name: Upload proof-of-execution artifacts
         if: always()
