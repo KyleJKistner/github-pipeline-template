@@ -3,6 +3,11 @@ name: SQIsign H9.2 validation
 on:
   push:
     branches: [research/sqisign-h92-validation]
+  pull_request:
+    branches: [main]
+    paths:
+      - validation/apply_h922_patch.py
+      - .github/workflows/sqisign-h92-validation.yml
   workflow_dispatch:
 
 permissions:
