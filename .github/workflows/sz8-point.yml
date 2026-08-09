@@ -1,0 +1,30 @@
+name: Temporary Sz8 point search
+
+on:
+  push:
+    branches:
+      - research-sz8-rank-20260809
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  mwrank-search:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        bound: [10, 20, 40, 80]
+    container:
+      image: sagemath/sagemath:10.9
+    steps:
+      - name: Search for a non-torsion point
+        shell: bash
+        run: |
+          curve='[0,0,1,-147036293428447300,31096531290525027422504031]'
+          echo "CURVE=$curve BOUND=${{ matrix.bound }}"
+          printf '%s\n' "$curve" | timeout 9m mwrank -v 3 -b ${{ matrix.bound }} -S 500
