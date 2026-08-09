@@ -1,0 +1,46 @@
+name: Temporary Sz8 quick invariants
+
+on:
+  push:
+    branches:
+      - research-sz8-rank-20260809
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  invariants:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    container:
+      image: sagemath/sagemath:10.9
+    steps:
+      - name: Compute minimal models, local data, and root numbers
+        shell: bash
+        run: |
+          cat > /tmp/quick.sage <<'SAGE'
+          from sage.all import *
+          curves = {
+              "candidate_plus": [0,0,0,-2352580694855156800,1990178002593601755040258000],
+              "candidate_minus": [0,0,0,-2352580694855156800,-1990178002593601755040258000],
+          }
+          for label,a in curves.items():
+              E=EllipticCurve(QQ,a)
+              M=E.global_minimal_model()
+              print("="*80)
+              print("LABEL",label)
+              print("MINIMAL_AINVS",list(M.a_invariants()))
+              print("ISOMORPHISM",E.isomorphism_to(M))
+              print("DISCRIMINANT",M.discriminant())
+              print("CONDUCTOR",M.conductor())
+              print("J",M.j_invariant())
+              print("ROOT_NUMBER",M.root_number())
+              print("TORSION_ORDER",M.torsion_order())
+              print("LOCAL_DATA")
+              for ld in M.local_data():
+                  print(ld)
+          SAGE
+          sage /tmp/quick.sage
