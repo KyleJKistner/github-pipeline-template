@@ -1,0 +1,69 @@
+name: Temporary Sz8 elliptic-rank computation
+
+on:
+  push:
+    branches:
+      - research-sz8-rank-20260809
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  rank:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    container:
+      image: sagemath/sagemath:10.9
+    steps:
+      - name: Compute exact Mordell-Weil data
+        shell: bash
+        run: |
+          cat > /tmp/compute.sage <<'SAGE'
+          from sage.all import *
+
+          curves = {
+              "candidate_plus": [0, 0, 0,
+                  -2352580694855156800,
+                  1990178002593601755040258000],
+              "candidate_minus": [0, 0, 0,
+                  -2352580694855156800,
+                  -1990178002593601755040258000],
+          }
+
+          for label, ainvs in curves.items():
+              print("=" * 100)
+              print("LABEL", label)
+              print("AINVS", ainvs)
+              E = EllipticCurve(QQ, ainvs)
+              Emin = E.global_minimal_model()
+              print("MINIMAL_AINVS", list(Emin.a_invariants()))
+              print("DISCRIMINANT", Emin.discriminant())
+              print("CONDUCTOR", Emin.conductor())
+              print("J", Emin.j_invariant())
+              print("ROOT_NUMBER", Emin.root_number())
+              print("TORSION", Emin.torsion_subgroup())
+              try:
+                  print("RANK_BOUNDS", Emin.rank_bounds())
+              except Exception as exc:
+                  print("RANK_BOUNDS_ERROR", repr(exc))
+              try:
+                  r = Emin.rank(proof=True)
+                  print("PROVEN_RANK", r)
+              except Exception as exc:
+                  print("PROVEN_RANK_ERROR", repr(exc))
+              try:
+                  gens = Emin.gens(proof=True)
+                  print("GENERATORS", gens)
+                  for i, P in enumerate(gens):
+                      print("GENERATOR", i, "XYZ", tuple(P), "HEIGHT", P.height())
+              except Exception as exc:
+                  print("GENERATORS_ERROR", repr(exc))
+              try:
+                  print("MWRANK", Emin.mwrank())
+              except Exception as exc:
+                  print("MWRANK_ERROR", repr(exc))
+          SAGE
+          sage /tmp/compute.sage
