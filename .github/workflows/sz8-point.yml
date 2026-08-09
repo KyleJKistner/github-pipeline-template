@@ -14,17 +14,26 @@ permissions:
 jobs:
   mwrank-search:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
-        bound: [10, 20, 40, 80]
+        bound: [10, 30, 100, 300]
     container:
       image: sagemath/sagemath:10.9
     steps:
       - name: Search for a non-torsion point
         shell: bash
         run: |
+          set -o pipefail
+          mwrank_path=$(sage -python - <<'PY'
+          from sage.features.eclib import Mwrank
+          print(Mwrank().absolute_filename())
+          PY
+          )
+          echo "MWRANK=$mwrank_path"
+          "$mwrank_path" --help 2>&1 | head -80 || true
+
           curve='[0,0,1,-147036293428447300,31096531290525027422504031]'
           echo "CURVE=$curve BOUND=${{ matrix.bound }}"
-          printf '%s\n' "$curve" | timeout 9m mwrank -v 3 -b ${{ matrix.bound }} -S 500
+          printf '%s\n' "$curve" | timeout 11m "$mwrank_path" -v 3 -b ${{ matrix.bound }} -S 1000
