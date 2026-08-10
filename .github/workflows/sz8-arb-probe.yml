@@ -28,9 +28,6 @@ jobs:
       - name: Probe Sage complex-ball API
         shell: bash
         run: sage research/arb_probe.sage
-      - name: Probe parameterized Krawczyk continuation
+      - name: Probe factorized complex-ball continuation bounds
         shell: bash
-        run: sage research/sz8_interval_newton_probe.sage
-      - name: Probe certified Rouche disk bounds
-        shell: bash
-        run: sage research/sz8_rouche_probe.sage
+        run: sage research/sz8_factor_rouche_probe.sage
