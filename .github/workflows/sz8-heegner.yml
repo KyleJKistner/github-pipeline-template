@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - research-sz8-rank-20260809
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: read
@@ -49,6 +52,5 @@ jobs:
           print('POINT_HEIGHT', P.height(), flush=True)
           Q = (~phi)(P)
           print('ORIGINAL_POINT', tuple(Q), flush=True)
-          print('CHECK_MINIMAL', M.defining_polynomial()(P[0],P[1],P[2]) if hasattr(M,'defining_polynomial') else 'constructed', flush=True)
           SAGE
           timeout 42m sage /tmp/heegner.sage
