@@ -13,7 +13,7 @@ permissions:
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     container:
       image: sagemath/sagemath:10.9
     steps:
@@ -28,6 +28,9 @@ jobs:
       - name: Probe Sage complex-ball API
         shell: bash
         run: sage research/arb_probe.sage
-      - name: Probe parametric interval Newton
+      - name: Probe parameterized Krawczyk continuation
         shell: bash
         run: sage research/sz8_interval_newton_probe.sage
+      - name: Probe certified Rouche disk bounds
+        shell: bash
+        run: sage research/sz8_rouche_probe.sage
