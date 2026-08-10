@@ -2,7 +2,7 @@ from sage.all import *
 
 load('/tmp/sz8_surface_data.sage')
 
-PREC = 256
+PREC = 384
 CBF = ComplexBallField(PREC)
 RBF = RealBallField(PREC)
 CF = ComplexField(PREC)
@@ -26,40 +26,42 @@ def strict_box_contains(outer, inner):
     irl,iru=inner.real().endpoints(); iil,iiu=inner.imag().endpoints()
     return orl<irl and iru<oru and oil<iil and iiu<oiu
 
-def ccenter(z):
-    return CF(z.real().center(), z.imag().center())
-
 x0=QQ(1)/2
 F0=P0+x0*P1
-roots=F0.roots(ring=CBF,multiplicities=False)
-assert len(roots)==110
-assert all(not roots[i].overlaps(roots[j]) for i in range(110) for j in range(i+1,110))
-centers=sorted([ccenter(r) for r in roots], key=lambda z:(z.real(),z.imag()))
-print('BASE_ROOTS',len(centers))
-print('MAX_BASE_RAD',max(r.rad().upper() for r in roots))
+centers=F0.roots(ring=CF,multiplicities=False)
+assert len(centers)==110
+centers=sorted(centers,key=lambda z:(z.real(),z.imag()))
+for i,z in enumerate(centers):
+    for _ in range(10): z-=F_num(z,CF(x0))/dF_num(z,CF(x0))
+    centers[i]=z
+seps=[min(abs(z-w) for j,w in enumerate(centers) if i!=j) for i,z in enumerate(centers)]
+base_balls=[]
+for z,sep in zip(centers,seps):
+    V=CBF(z).add_error(RBF(sep/1024))
+    image=CBF(z)-F_ball(CBF(z),CBF(x0))/dF_ball(V,CBF(x0))
+    assert strict_box_contains(V,image)
+    base_balls.append(V)
+assert all(not base_balls[i].overlaps(base_balls[j]) for i in range(110) for j in range(i+1,110))
+print('BASE_ROOTS_CERTIFIED',len(base_balls))
+print('MIN_BASE_SEPARATION',min(seps))
 
 x1=QQ(499)/1000
 z0=centers[0]
 z1=z0
-for _ in range(8):
-    z1 -= F_num(z1,CF(x1))/dF_num(z1,CF(x1))
+for _ in range(10): z1-=F_num(z1,CF(x1))/dF_num(z1,CF(x1))
 sep=min(abs(z1-w) for w in centers[1:])
-r=RBF(sep/100)
+r=RBF(sep/1024)
 V1=CBF(z1).add_error(r)
 N1=CBF(z1)-F_ball(CBF(z1),CBF(x1))/dF_ball(V1,CBF(x1))
-print('VERTEX_RADIUS',r)
-print('VERTEX_IMAGE',N1)
 print('VERTEX_STRICT',strict_box_contains(V1,N1))
 assert strict_box_contains(V1,N1)
 
 mid=(z0+z1)/2
-rad=RBF(abs(z1-z0)*3/4)+r*2
+rad=RBF(abs(z1-z0)*13/20)+r*4
 Z=CBF(mid).add_error(rad)
 xmid=RBF((x0+x1)/2).add_error(RBF(abs(x1-x0)/2))
 X=CBF(xmid,RBF(0))
 Nt=CBF(mid)-F_ball(CBF(mid),X)/dF_ball(Z,X)
-print('TUBE_RADIUS',rad)
-print('TUBE_IMAGE',Nt)
 print('TUBE_STRICT',strict_box_contains(Z,Nt))
 assert strict_box_contains(Z,Nt)
 print('[PASS] certified interval-Newton probe')
