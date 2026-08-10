@@ -1,0 +1,70 @@
+name: Temporary Sz8 targeted fiber search
+
+on:
+  push:
+    branches:
+      - research-sz8-rank-20260809
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  fiber:
+    runs-on: ubuntu-latest
+    timeout-minutes: 28
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - "10/13"
+          - "15/13"
+          - "0"
+          - "2"
+          - "1"
+          - "11/13"
+          - "14/13"
+          - "9/13"
+    container:
+      image: sagemath/sagemath:10.9
+    steps:
+      - uses: actions/checkout@v4
+      - name: Search the specialized elliptic curve
+        shell: bash
+        run: |
+          cat > /tmp/target.sage <<'SAGE'
+          load('research/sz8_surface_data.sage')
+          t0 = QQ('${{ matrix.target }}')
+          print('TARGET', t0)
+          print('U_VALUE', u_map(t0))
+          E = fiber(t0)
+          M = E.global_minimal_model()
+          phi = E.isomorphism_to(M)
+          print('ORIGINAL_AINVS', list(E.a_invariants()))
+          print('MINIMAL_AINVS', list(M.a_invariants()))
+          print('ISOMORPHISM', phi)
+          print('DISCRIMINANT', M.discriminant())
+          print('CONDUCTOR', M.conductor())
+          print('ROOT_NUMBER', M.root_number())
+          print('TORSION', M.torsion_subgroup())
+          print('LOCAL_DATA')
+          for ld in M.local_data():
+              print(ld)
+          for h in [3, 5, 7, 9]:
+              print('POINT_SEARCH_HEIGHT', h)
+              try:
+                  pts = M.point_search(h, verbose=False, rank_bound=1)
+                  print('POINTS', pts)
+                  if pts:
+                      P = pts[0]
+                      print('FOUND_POINT', tuple(P))
+                      print('POINT_ORDER', P.order())
+                      print('POINT_HEIGHT', P.height())
+                      print('POINT_ON_ORIGINAL', tuple((~phi)(P)))
+                      break
+              except Exception as exc:
+                  print('POINT_SEARCH_ERROR', h, repr(exc))
+          SAGE
+          timeout 25m sage /tmp/target.sage
