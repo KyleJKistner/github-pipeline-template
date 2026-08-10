@@ -6,6 +6,7 @@ PREC = 512
 CBF = ComplexBallField(PREC)
 RBF = RealBallField(PREC)
 CF = ComplexField(PREC)
+RF = RealField(PREC)
 
 print('ISOLATING_FACTOR_ROOTS',flush=True)
 AR=A.roots(ring=CBF,multiplicities=False)
@@ -62,9 +63,6 @@ def strict_box_contains(outer, inner):
 
 def certify(z,x,sep):
     last=None
-    # Start with a very tight box and enlarge only if interval rounding
-    # prevents the Newton inclusion.  Tight vertex boxes are essential for
-    # efficient affine-predictor tubes.
     for k in range(30,2,-1):
         r=RBF(sep/(2^k))
         V=CBF(z).add_error(r)
@@ -104,43 +102,43 @@ print('BASE_ROOTS_CERTIFIED',len(base_balls),flush=True)
 print('MIN_BASE_SEPARATION',min(seps),flush=True)
 print('BASE_RADIUS_EXPONENT_RANGE',min(ks),max(ks),flush=True)
 
-# Probe a short validated continuation segment with an affine predictor
-# z = L(x) + y.  Interval Newton certifies the small correction y.
+# Parameterized Krawczyk probe with affine predictor z=L(x)+y.
 x1=QQ(499)/1000
 z0=centers[0]
 z1=z0
 for _ in range(24): z1-=F_num(z1,CF(x1))/dF_num(z1,CF(x1))
-F1=Q2*A^3+x1*(B^2-Q2*A^3)
-all1=F1.roots(ring=CF,multiplicities=False)
-sep=min(abs(z1-w) for w in all1 if abs(z1-w)>RealField(PREC)(2)^(-PREC/3))
-V1,k1,N1=certify(z1,x1,sep)
+V1,k1,N1=certify(z1,x1,seps[0]/2)
 print('VERTEX_RADIUS_EXPONENT',k1,flush=True)
 
 xr=RBF((x0+x1)/2).add_error(RBF(abs(x1-x0)/2))
 X=CBF(xr,RBF(0))
 slope=CBF((z1-z0)/CF(x1-x0))
 L=CBF(z0)+slope*(X-CBF(x0))
+xmid=CF((x0+x1)/2)
+cmid=(z0+z1)/2
+for _ in range(24): cmid-=F_num(cmid,xmid)/dF_num(cmid,xmid)
+Lmid=CBF(z0)+slope*(CBF(xmid)-CBF(x0))
+y0=CBF(cmid)-Lmid
+preconditioner=CBF(1/dF_num(cmid,xmid))
 endpoint_rad=max(RBF(base_balls[0].rad()),RBF(V1.rad()))
-for j in range(1,25):
+for j in range(1,40):
     factor=2^j
-    Y=CBF(0).add_error(endpoint_rad*factor)
+    Y=CBF(y0).add_error(endpoint_rad*factor)
     if not ((base_balls[0]-CBF(z0)) in Y):
         continue
     predicted1=CBF(z0)+slope*(CBF(x1)-CBF(x0))
     if not ((V1-predicted1) in Y):
         continue
     try:
-        der=dF_ball(L+Y,X)
+        J=dF_ball(L+Y,X)
     except ZeroDivisionError:
         continue
-    if der.contains_zero():
-        continue
-    image=-F_ball(L,X)/der
-    if strict_box_contains(Y,image):
-        print('PREDICTOR_FACTOR',factor,flush=True)
-        print('PREDICTOR_IMAGE',image,flush=True)
-        print('PREDICTOR_STRICT',True,flush=True)
+    K=y0-preconditioner*F_ball(L+y0,X)+(1-preconditioner*J)*(Y-y0)
+    if strict_box_contains(Y,K):
+        print('KRAWCZYK_FACTOR',factor,flush=True)
+        print('KRAWCZYK_IMAGE',K,flush=True)
+        print('KRAWCZYK_STRICT',True,flush=True)
         break
 else:
-    raise RuntimeError('no certified affine-predictor tube')
-print('[PASS] certified interval-Newton probe',flush=True)
+    raise RuntimeError('no certified affine-predictor Krawczyk tube')
+print('[PASS] certified Krawczyk continuation probe',flush=True)
