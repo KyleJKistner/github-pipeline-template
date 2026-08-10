@@ -12,55 +12,31 @@ permissions:
   contents: read
 
 jobs:
-  mwrank-search:
+  ratpoints-search:
     runs-on: ubuntu-latest
-    timeout-minutes: 18
+    timeout-minutes: 32
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - first_limit: 20
-            second_limit: 8
-            n_aux: 8
-          - first_limit: 80
-            second_limit: 10
-            n_aux: 10
-          - first_limit: 200
-            second_limit: 12
-            n_aux: 12
-          - first_limit: 500
-            second_limit: 14
-            n_aux: 14
+        height: [8, 12, 16, 20]
     container:
       image: sagemath/sagemath:10.9
     steps:
-      - name: Search for a non-torsion point through eclib
+      - name: Search directly for a non-torsion point
         shell: bash
         run: |
-          cat > /tmp/mwrank_search.sage <<'SAGE'
+          cat > /tmp/search.sage <<'SAGE'
           from sage.all import *
-          from sage.libs.eclib.interface import mwrank_EllipticCurve
+          from sage.libs.eclib.interface import mwrank_EllipticCurve, mwrank_MordellWeil
 
           ainvs = [0, 0, 1, -147036293428447300, 31096531290525027422504031]
           C = mwrank_EllipticCurve(ainvs, verbose=True)
-          print("AINVS", C.ainvs())
-          print("PARAMETERS", ${{ matrix.first_limit }}, ${{ matrix.second_limit }}, ${{ matrix.n_aux }})
-          C.two_descent(
-              verbose=True,
-              selmer_only=False,
-              first_limit=${{ matrix.first_limit }},
-              second_limit=${{ matrix.second_limit }},
-              n_aux=${{ matrix.n_aux }},
-              second_descent=True,
-          )
-          print("LOWER_RANK", C.rank())
-          print("RANK_BOUND", C.rank_bound())
-          print("SELMER_RANK", C.selmer_rank())
-          print("CERTAIN", C.certain())
-          raw = C._mwrank_EllipticCurve__two_descent_data().getbasis()
-          print("RAW_BASIS", raw)
-          C.saturate(bound=1000)
-          print("SATURATED_GENERATORS", C.gens())
-          print("REGULATOR", C.regulator() if C.certain() else "not-certified")
+          MW = mwrank_MordellWeil(C, verbose=True, pp=1, maxr=1)
+          print("AINVS", C.ainvs(), flush=True)
+          print("HEIGHT_LIMIT", ${{ matrix.height }}, flush=True)
+          MW.search(height_limit=${{ matrix.height }}, verbose=True)
+          print("RANK_FOUND", MW.rank(), flush=True)
+          print("POINTS", MW.points(), flush=True)
+          print("SUBGROUP", MW, flush=True)
           SAGE
-          timeout 15m sage /tmp/mwrank_search.sage
+          timeout 28m sage /tmp/search.sage
