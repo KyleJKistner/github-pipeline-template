@@ -83,14 +83,17 @@ for i in range(110):
     all_data.append(d)
     if i % 20 == 0:
         print('ROUCHE_PROGRESS',i,'ALLOWED',d['allowed_parameter_step'],flush=True)
-minimum=min(d['allowed_parameter_step'] for d in all_data)
-worst=[i for i,d in enumerate(all_data) if d['allowed_parameter_step']==minimum][0]
+# Compare rigorous lower endpoints, not overlapping ball objects.
+worst=min(range(110),key=lambda i:all_data[i]['allowed_parameter_step'].lower())
+minimum=all_data[worst]['allowed_parameter_step']
+minimum_lower=RBF(minimum.lower())
 print('ROUCHE_MIN_ALLOWED_STEP',minimum,flush=True)
+print('ROUCHE_MIN_ALLOWED_STEP_LOWER',minimum_lower,flush=True)
 print('ROUCHE_WORST_ROOT',worst,flush=True)
 print('ROUCHE_WORST_DATA',all_data[worst],flush=True)
 for p in range(4,31):
-    if RBF(QQ(1)/(2^p)) < minimum:
+    if RBF(QQ(1)/(2^p)) < minimum_lower:
         print('ROUCHE_UNIFORM_DYADIC_POWER',p,flush=True)
         break
-assert minimum > 0
+assert minimum_lower > 0
 print('[PASS] certified Rouché step bound at all 110 base roots',flush=True)
