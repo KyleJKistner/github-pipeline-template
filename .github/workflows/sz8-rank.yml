@@ -1,12 +1,7 @@
 name: Temporary Sz8 elliptic-rank computation
 
 on:
-  push:
-    branches:
-      - research-sz8-rank-20260809
-  pull_request:
-    branches:
-      - main
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -61,9 +56,5 @@ jobs:
                       print("GENERATOR", i, "XYZ", tuple(P), "HEIGHT", P.height())
               except Exception as exc:
                   print("GENERATORS_ERROR", repr(exc))
-              try:
-                  print("MWRANK", Emin.mwrank())
-              except Exception as exc:
-                  print("MWRANK_ERROR", repr(exc))
           SAGE
           sage /tmp/compute.sage
