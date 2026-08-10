@@ -1,0 +1,110 @@
+name: Temporary Sz8 PARI Heegner search
+
+on:
+  push:
+    branches:
+      - research-sz8-rank-20260809
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  pari-heegner:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        precision: [64, 96, 144, 216]
+    container:
+      image: sagemath/sagemath:10.9
+    steps:
+      - name: Compute analytic rank and a Heegner point with PARI
+        shell: bash
+        run: |
+          cat > /tmp/heegner.py <<'PY'
+          from cypari2 import Pari
+          from fractions import Fraction
+          import sys
+
+          prec = int(sys.argv[1])
+          pari = Pari()
+          pari.set_real_precision(prec)
+          ainvs = [0, 0, 1, -147036293428447300, 31096531290525027422504031]
+          E = pari.ellinit(ainvs)
+          print("PRECISION", prec, flush=True)
+          print("ELLGLOBALRED", pari.ellglobalred(E), flush=True)
+          print("ELLROOTNO", pari.ellrootno(E), flush=True)
+          print("ELLANALYTICRANK_BEGIN", flush=True)
+          ar = pari.ellanalyticrank(E)
+          print("ELLANALYTICRANK", ar, flush=True)
+          print("ELLHEEGNER_BEGIN", flush=True)
+          P = pari.ellheegner(E)
+          print("ELLHEEGNER", P, flush=True)
+          print("ON_CURVE", pari.ellisoncurve(E, P), flush=True)
+          print("HEIGHT", pari.ellheight(E, P), flush=True)
+          PY
+          timeout 54m sage -python /tmp/heegner.py ${{ matrix.precision }}
+
+  sage-pari-generators:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [pari, heegner, analytic]
+    container:
+      image: sagemath/sagemath:10.9
+    steps:
+      - name: Exercise Sage rank-one interfaces
+        shell: bash
+        run: |
+          cat > /tmp/sage_search.sage <<'SAGE'
+          from sage.all import *
+          import inspect
+          E = EllipticCurve(QQ, [0,0,1,-147036293428447300,31096531290525027422504031])
+          print("MODE", "${{ matrix.mode }}", flush=True)
+          print("AINVS", list(E.a_invariants()), flush=True)
+          print("ROOT_NUMBER", E.root_number(), flush=True)
+          print("AVAILABLE_METHODS", [n for n in dir(E) if 'heegner' in n.lower() or 'analytic_rank' in n.lower()], flush=True)
+          if "${{ matrix.mode }}" == "analytic":
+              for alg in [None, 'pari', 'rubinstein', 'sympow']:
+                  try:
+                      if alg is None:
+                          ans = E.analytic_rank()
+                      else:
+                          ans = E.analytic_rank(algorithm=alg)
+                      print("ANALYTIC_RANK", alg, ans, flush=True)
+                  except Exception as exc:
+                      print("ANALYTIC_RANK_ERROR", alg, repr(exc), flush=True)
+          elif "${{ matrix.mode }}" == "pari":
+              for kwargs in [
+                  {'proof':False, 'algorithm':'pari'},
+                  {'proof':False},
+                  {'proof':False, 'rank':1},
+                  {'proof':False, 'rank':1, 'algorithm':'pari'},
+              ]:
+                  try:
+                      print("GENS_TRY", kwargs, flush=True)
+                      gs = E.gens(**kwargs)
+                      print("GENS", kwargs, gs, flush=True)
+                      for P in gs:
+                          print("POINT", tuple(P), "HEIGHT", P.height(), "ORDER", P.order(), flush=True)
+                  except Exception as exc:
+                      print("GENS_ERROR", kwargs, repr(exc), flush=True)
+          else:
+              for name in [n for n in dir(E) if 'heegner' in n.lower()]:
+                  try:
+                      obj = getattr(E,name)
+                      print("HEEGNER_METHOD", name, inspect.signature(obj), flush=True)
+                  except Exception as exc:
+                      print("HEEGNER_SIGNATURE_ERROR", name, repr(exc), flush=True)
+              try:
+                  print("HEEGNER_INDEX", E.heegner_index(), flush=True)
+              except Exception as exc:
+                  print("HEEGNER_INDEX_ERROR", repr(exc), flush=True)
+          SAGE
+          timeout 54m sage /tmp/sage_search.sage
