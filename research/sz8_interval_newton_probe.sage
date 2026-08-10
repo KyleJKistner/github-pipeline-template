@@ -7,29 +7,52 @@ CBF = ComplexBallField(PREC)
 RBF = RealBallField(PREC)
 CF = ComplexField(PREC)
 
-Ab=A.change_ring(CBF); Bb=B.change_ring(CBF); Qb=Q2.change_ring(CBF)
-dAb=A.derivative().change_ring(CBF)
-dBb=B.derivative().change_ring(CBF)
-dQb=Q2.derivative().change_ring(CBF)
-Ac=A.change_ring(CF); Bc=B.change_ring(CF); Qc=Q2.change_ring(CF)
-dAc=A.derivative().change_ring(CF)
-dBc=B.derivative().change_ring(CF)
-dQc=Q2.derivative().change_ring(CF)
+print('ISOLATING_FACTOR_ROOTS',flush=True)
+AR=A.roots(ring=CBF,multiplicities=False)
+BR=B.roots(ring=CBF,multiplicities=False)
+QR=Q2.roots(ring=CBF,multiplicities=False)
+assert (len(AR),len(BR),len(QR))==(36,55,2)
+assert all(not AR[i].overlaps(AR[j]) for i in range(36) for j in range(i+1,36))
+assert all(not BR[i].overlaps(BR[j]) for i in range(55) for j in range(i+1,55))
+assert not QR[0].overlaps(QR[1])
+ARC=[CF(r.real().center(),r.imag().center()) for r in AR]
+BRC=[CF(r.real().center(),r.imag().center()) for r in BR]
+QRC=[CF(r.real().center(),r.imag().center()) for r in QR]
+
+def product_and_derivative_ball(z,roots):
+    dif=[z-r for r in roots]
+    if any(d.contains_zero() for d in dif):
+        raise ZeroDivisionError('factor box meets a certified root')
+    p=prod(dif,CBF(1))
+    return p,p*sum((1/d for d in dif),CBF(0))
+
+def product_and_derivative_num(z,roots):
+    dif=[z-r for r in roots]
+    p=prod(dif,CF(1))
+    return p,p*sum((1/d for d in dif),CF(0))
 
 def F_ball(z,x):
-    a=Ab(z); b=Bb(z); q=Qb(z)
+    a,ap=product_and_derivative_ball(z,AR)
+    b,bp=product_and_derivative_ball(z,BR)
+    q,qp=product_and_derivative_ball(z,QR)
     return (1-x)*q*a^3+x*b^2
 
 def dF_ball(z,x):
-    a=Ab(z); ap=dAb(z); b=Bb(z); bp=dBb(z); q=Qb(z); qp=dQb(z)
+    a,ap=product_and_derivative_ball(z,AR)
+    b,bp=product_and_derivative_ball(z,BR)
+    q,qp=product_and_derivative_ball(z,QR)
     return (1-x)*(qp*a^3+3*q*a^2*ap)+x*(2*b*bp)
 
 def F_num(z,x):
-    a=Ac(z); b=Bc(z); q=Qc(z)
+    a,ap=product_and_derivative_num(z,ARC)
+    b,bp=product_and_derivative_num(z,BRC)
+    q,qp=product_and_derivative_num(z,QRC)
     return (1-x)*q*a^3+x*b^2
 
 def dF_num(z,x):
-    a=Ac(z); ap=dAc(z); b=Bc(z); bp=dBc(z); q=Qc(z); qp=dQc(z)
+    a,ap=product_and_derivative_num(z,ARC)
+    b,bp=product_and_derivative_num(z,BRC)
+    q,qp=product_and_derivative_num(z,QRC)
     return (1-x)*(qp*a^3+3*q*a^2*ap)+x*(2*b*bp)
 
 def strict_box_contains(outer, inner):
@@ -39,10 +62,14 @@ def strict_box_contains(outer, inner):
 
 def certify(z,x,sep):
     last=None
-    for k in range(3,41):
+    for k in range(3,51):
         r=RBF(sep/(2^k))
         V=CBF(z).add_error(r)
-        der=dF_ball(V,CBF(x))
+        try:
+            der=dF_ball(V,CBF(x))
+        except ZeroDivisionError:
+            last=('factor',k,r)
+            continue
         if der.contains_zero():
             last=('derivative',k,r,der)
             continue
@@ -90,7 +117,10 @@ for factor in [QQ(3)/4,QQ(7)/8,QQ(1),QQ(5)/4,QQ(3)/2,QQ(2),QQ(3),QQ(4)]:
     Z=CBF(mid).add_error(rad)
     xr=RBF((x0+x1)/2).add_error(RBF(abs(x1-x0)/2))
     X=CBF(xr,RBF(0))
-    der=dF_ball(Z,X)
+    try:
+        der=dF_ball(Z,X)
+    except ZeroDivisionError:
+        continue
     if der.contains_zero():
         continue
     Nt=CBF(mid)-F_ball(CBF(mid),X)/der
