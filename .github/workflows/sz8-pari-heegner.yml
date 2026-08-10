@@ -1,0 +1,120 @@
+name: Sz8 PARI Heegner computation
+
+on:
+  push:
+    branches: [research-sz8-pari-20260810]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  pari-heegner:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        precision: [64, 96, 144, 216]
+    container:
+      image: sagemath/sagemath:10.9
+    steps:
+      - name: PARI analytic rank and Heegner point
+        shell: bash
+        run: |
+          cat > /tmp/heegner.py <<'PY'
+          from cypari2 import Pari
+          import sys
+          prec=int(sys.argv[1])
+          pari=Pari()
+          pari.set_real_precision(prec)
+          a=[0,0,1,-147036293428447300,31096531290525027422504031]
+          E=pari.ellinit(a)
+          print("PRECISION",prec,flush=True)
+          print("ELLGLOBALRED",pari.ellglobalred(E),flush=True)
+          print("ELLROOTNO",pari.ellrootno(E),flush=True)
+          try:
+              print("ELLANALYTICRANK",pari.ellanalyticrank(E),flush=True)
+          except Exception as e:
+              print("ELLANALYTICRANK_ERROR",repr(e),flush=True)
+          try:
+              P=pari.ellheegner(E)
+              print("ELLHEEGNER",P,flush=True)
+              print("ELLISONCURVE",pari.ellisoncurve(E,P),flush=True)
+              print("ELLHEIGHT",pari.ellheight(E,P),flush=True)
+          except Exception as e:
+              print("ELLHEEGNER_ERROR",repr(e),flush=True)
+              raise
+          PY
+          timeout 82m sage -python /tmp/heegner.py ${{ matrix.precision }}
+
+  sage-interfaces:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        task: [analytic, pari_gens, heegner_api, pari_gp]
+    container:
+      image: sagemath/sagemath:10.9
+    steps:
+      - name: Sage rank-one interfaces
+        shell: bash
+        run: |
+          cat > /tmp/search.sage <<'SAGE'
+          from sage.all import *
+          import inspect
+          E=EllipticCurve(QQ,[0,0,1,-147036293428447300,31096531290525027422504031])
+          task="${{ matrix.task }}"
+          print("TASK",task,flush=True)
+          print("AINVS",list(E.a_invariants()),flush=True)
+          print("ROOT",E.root_number(),flush=True)
+          if task=="analytic":
+              for alg in [None,"pari","rubinstein","sympow"]:
+                  try:
+                      ans=E.analytic_rank() if alg is None else E.analytic_rank(algorithm=alg)
+                      print("ANALYTIC",alg,ans,flush=True)
+                  except Exception as e:
+                      print("ANALYTIC_ERROR",alg,repr(e),flush=True)
+          elif task=="pari_gens":
+              tests=[
+                  dict(proof=False,algorithm="pari"),
+                  dict(proof=False),
+                  dict(proof=False,rank=1),
+                  dict(proof=False,rank=1,algorithm="pari"),
+              ]
+              for kw in tests:
+                  try:
+                      print("TRY",kw,flush=True)
+                      gs=E.gens(**kw)
+                      print("GENS",kw,gs,flush=True)
+                      for P in gs:
+                          print("POINT",tuple(P),"HEIGHT",P.height(),"ORDER",P.order(),flush=True)
+                  except Exception as e:
+                      print("GENS_ERROR",kw,repr(e),flush=True)
+          elif task=="heegner_api":
+              names=[n for n in dir(E) if "heegner" in n.lower()]
+              print("NAMES",names,flush=True)
+              for n in names:
+                  try: print("SIG",n,inspect.signature(getattr(E,n)),flush=True)
+                  except Exception as e: print("SIG_ERROR",n,repr(e),flush=True)
+              for D in [-3,-4,-7,-8,-11,-19,-43,-67,-163,-20,-24,-31,-40,-52,-88,-91,-115,-148,-232,-267,-403,-427]:
+                  try:
+                      H=E.heegner_point(D)
+                      print("HEEGNER_POINT",D,H,flush=True)
+                      print("NUMERICAL",H.numerical_approx(),flush=True)
+                  except Exception as e:
+                      print("HEEGNER_ERROR",D,repr(e),flush=True)
+          else:
+              from sage.libs.pari.all import pari
+              pe=pari(E)
+              print("PARI_E",pe,flush=True)
+              for expr in ["ellanalyticrank", "ellheegner"]:
+                  try:
+                      ans=getattr(pari,expr)(pe)
+                      print("PARI_CALL",expr,ans,flush=True)
+                  except Exception as e:
+                      print("PARI_ERROR",expr,repr(e),flush=True)
+          SAGE
+          timeout 82m sage /tmp/search.sage
