@@ -1,12 +1,7 @@
 name: Temporary Sz8 fast mwrank screen
 
 on:
-  push:
-    branches:
-      - research-sz8-rank-20260809
-  pull_request:
-    branches:
-      - main
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -18,66 +13,5 @@ jobs:
     container:
       image: sagemath/sagemath:10.9
     steps:
-      - name: Minimal models and fast 2-descent
-        shell: bash
-        run: |
-          set -o pipefail
-          cat > /tmp/prep.sage <<'SAGE'
-          from sage.all import *
-          curves = {
-              "candidate_plus": [0,0,0,-2352580694855156800,1990178002593601755040258000],
-              "candidate_minus": [0,0,0,-2352580694855156800,-1990178002593601755040258000],
-          }
-          for label, a in curves.items():
-              E = EllipticCurve(QQ,a)
-              M = E.global_minimal_model()
-              print("LABEL", label)
-              print("ORIGINAL", list(E.a_invariants()))
-              print("MINIMAL", list(M.a_invariants()))
-              print("DISCRIMINANT", M.discriminant())
-              print("CONDUCTOR", M.conductor())
-              print("ROOT_NUMBER", M.root_number())
-              print("TORSION", M.torsion_subgroup())
-              print("MWRANK_INPUT", str(list(M.a_invariants())).replace(' ',''))
-          SAGE
-          sage /tmp/prep.sage | tee /tmp/prep.out
-
-          plus=$(awk '/LABEL candidate_plus/{f=1;next} f&&/MWRANK_INPUT/{print $2;exit}' /tmp/prep.out)
-          minus=$(awk '/LABEL candidate_minus/{f=1;next} f&&/MWRANK_INPUT/{print $2;exit}' /tmp/prep.out)
-          echo "PLUS_MINIMAL=$plus"
-          echo "MINUS_MINIMAL=$minus"
-
-          for pair in "plus:$plus" "minus:$minus"; do
-            label=${pair%%:*}
-            curve=${pair#*:}
-            echo "===================================================================================================="
-            echo "SELMER_ONLY $label $curve"
-            printf '%s\n' "$curve" | timeout 8m mwrank -v 2 -s 2>&1 | tee "/tmp/${label}-selmer.txt" || true
-            echo "FULL_MWRANK $label $curve"
-            printf '%s\n' "$curve" | timeout 12m mwrank -v 2 -b 20 -S 200 2>&1 | tee "/tmp/${label}-full.txt" || true
-          done
-
-          echo "===================================================================================================="
-          echo "SAGE_NONPROOF_GENERATOR_SEARCH"
-          cat > /tmp/search.sage <<'SAGE'
-          from sage.all import *
-          curves = {
-              "candidate_plus": [0,0,0,-2352580694855156800,1990178002593601755040258000],
-              "candidate_minus": [0,0,0,-2352580694855156800,-1990178002593601755040258000],
-          }
-          for label,a in curves.items():
-              M = EllipticCurve(QQ,a).global_minimal_model()
-              print("LABEL", label, "MINIMAL", list(M.a_invariants()))
-              try:
-                  print("RANK_PROOF_FALSE", M.rank(proof=False))
-              except Exception as e:
-                  print("RANK_PROOF_FALSE_ERROR", repr(e))
-              try:
-                  gs=M.gens(proof=False)
-                  print("GENS_PROOF_FALSE", gs)
-                  for P in gs:
-                      print("POINT", tuple(P), "HEIGHT", P.height())
-              except Exception as e:
-                  print("GENS_PROOF_FALSE_ERROR", repr(e))
-          SAGE
-          timeout 12m sage /tmp/search.sage || true
+      - name: Placeholder
+        run: echo "Automatic execution disabled; superseded by sz8-point.yml."
