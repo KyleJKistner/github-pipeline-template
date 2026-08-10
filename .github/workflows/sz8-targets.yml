@@ -3,7 +3,7 @@ name: Temporary Sz8 targeted fiber search
 on:
   push:
     branches:
-      - research-sz8-rank-20260809
+      - research-sz8-closure-20260810
   pull_request:
     branches:
       - main
@@ -11,60 +11,101 @@ on:
 permissions:
   contents: read
 
+env:
+  SAGE_NUM_THREADS: 1
+
 jobs:
-  fiber:
+  scan:
     runs-on: ubuntu-latest
-    timeout-minutes: 28
+    timeout-minutes: 55
     strategy:
       fail-fast: false
       matrix:
-        target:
-          - "10/13"
-          - "15/13"
-          - "0"
-          - "2"
-          - "1"
-          - "11/13"
-          - "14/13"
-          - "9/13"
+        shard: [0,1,2,3,4,5,6,7,8,9,10,11]
     container:
       image: sagemath/sagemath:10.9
     steps:
       - uses: actions/checkout@v4
-      - name: Search the specialized elliptic curve
+      - name: Scan exact rational fibers
         shell: bash
         run: |
-          cat > /tmp/target.sage <<'SAGE'
+          cat > /tmp/scan.sage <<'SAGE'
           load('research/sz8_surface_data.sage')
-          t0 = QQ('${{ matrix.target }}')
-          print('TARGET', t0)
-          print('U_VALUE', u_map(t0))
-          E = fiber(t0)
-          M = E.global_minimal_model()
-          phi = E.isomorphism_to(M)
-          print('ORIGINAL_AINVS', list(E.a_invariants()))
-          print('MINIMAL_AINVS', list(M.a_invariants()))
-          print('ISOMORPHISM', phi)
-          print('DISCRIMINANT', M.discriminant())
-          print('CONDUCTOR', M.conductor())
-          print('ROOT_NUMBER', M.root_number())
-          print('TORSION', M.torsion_subgroup())
-          print('LOCAL_DATA')
-          for ld in M.local_data():
-              print(ld)
-          for h in [3, 5, 7, 9]:
-              print('POINT_SEARCH_HEIGHT', h)
+          import json, os
+          shard = int(os.environ['SHARD'])
+          nshards = 12
+          records = []
+          failures = []
+          params = set()
+          for b in range(1,21):
+              for a in range(-40,41):
+                  if gcd(a,b)==1:
+                      params.add(QQ(a)/b)
+          for a in range(-100,101):
+              params.add(QQ(a)/13)
+          params = sorted(params, key=lambda x:(max(abs(x.numerator()),x.denominator()),x.denominator(),x.numerator()))
+          for i,t0 in enumerate(params):
+              if i % nshards != shard:
+                  continue
               try:
-                  pts = M.point_search(h, verbose=False, rank_bound=1)
-                  print('POINTS', pts)
-                  if pts:
-                      P = pts[0]
-                      print('FOUND_POINT', tuple(P))
-                      print('POINT_ORDER', P.order())
-                      print('POINT_HEIGHT', P.height())
-                      print('POINT_ON_ORIGINAL', tuple((~phi)(P)))
-                      break
+                  if H(t0)==0 or Delta(t0)==0:
+                      continue
+                  M=fiber(t0).global_minimal_model()
+                  if ZZ(M.root_number()) != -1:
+                      continue
+                  Nc=ZZ(M.conductor())
+                  rec={
+                      't':str(t0), 'u':str(u_map(t0)),
+                      'conductor':str(Nc),
+                      'ainvs':[str(x) for x in M.a_invariants()],
+                      'torsion_order':int(M.torsion_order()),
+                      'coeff_score':max(len(str(abs(ZZ(x)))) for x in M.a_invariants()),
+                      'disc_digits':len(str(abs(ZZ(M.discriminant())))),
+                  }
+                  records.append(rec)
+                  print('FOUND',json.dumps(rec,sort_keys=True),flush=True)
               except Exception as exc:
-                  print('POINT_SEARCH_ERROR', h, repr(exc))
+                  failures.append({'t':str(t0),'error':repr(exc)})
+                  print('FAIL',t0,repr(exc),flush=True)
+          records.sort(key=lambda r:(int(r['conductor']),r['coeff_score']))
+          path='/tmp/scan-%02d.json'%shard
+          json.dump({'shard':shard,'records':records,'failures':failures},open(path,'w'),indent=2,sort_keys=True)
+          print('SHARD_SUMMARY',shard,len(records),len(failures),flush=True)
+          print('SHARD_TOP',json.dumps(records[:25],sort_keys=True),flush=True)
           SAGE
-          timeout 25m sage /tmp/target.sage
+          SHARD=${{ matrix.shard }} timeout 50m sage /tmp/scan.sage
+      - uses: actions/upload-artifact@v4
+        with:
+          name: target-scan-${{ matrix.shard }}
+          path: /tmp/scan-${{ matrix.shard }}.json
+          if-no-files-found: error
+
+  aggregate:
+    needs: scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: target-scan-*
+          path: scan-results
+          merge-multiple: true
+      - name: Aggregate
+        shell: bash
+        run: |
+          python - <<'PY'
+          import glob,json
+          records=[]; failures=[]
+          for p in glob.glob('scan-results/*.json'):
+              d=json.load(open(p)); records+=d['records']; failures+=d['failures']
+          records.sort(key=lambda r:(int(r['conductor']),r['coeff_score']))
+          json.dump({'records':records,'failures':failures},open('sz8-target-scan.json','w'),indent=2,sort_keys=True)
+          print('TOTAL_ROOT_MINUS',len(records))
+          print('TOTAL_FAILURES',len(failures))
+          print('TOP_100',json.dumps(records[:100],indent=2,sort_keys=True))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sz8-target-scan
+          path: sz8-target-scan.json
+          if-no-files-found: error
