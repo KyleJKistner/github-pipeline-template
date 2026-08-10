@@ -1,12 +1,7 @@
 name: Temporary Sz8 quick invariants
 
 on:
-  push:
-    branches:
-      - research-sz8-rank-20260809
-  pull_request:
-    branches:
-      - main
+  workflow_dispatch:
 
 permissions:
   contents: read
