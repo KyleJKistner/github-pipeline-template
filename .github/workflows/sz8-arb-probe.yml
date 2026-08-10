@@ -1,0 +1,21 @@
+name: Sz8 Arb API probe
+
+on:
+  push:
+    branches: [research-sz8-certified-dessin]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    container:
+      image: sagemath/sagemath:10.9
+    steps:
+      - uses: actions/checkout@v4
+      - name: Probe Sage complex-ball API
+        shell: bash
+        run: sage research/arb_probe.sage
