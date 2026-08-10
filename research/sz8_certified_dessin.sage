@@ -1,2 +1,128 @@
-import zlib, base64
-exec(compile(zlib.decompress(base64.b64decode('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')).decode('utf-8'), 'sz8_certified_dessin.sage:embedded', 'exec'), globals())
+load('research/sz8_certified_dessin_core_1.sage')
+load('research/sz8_certified_dessin_core_2.sage')
+load('research/sz8_certified_dessin_core_3.sage')
+load('research/sz8_certified_dessin_core_4.sage')
+
+print('[2/7] certifying all 110 roots above the base point x=1/2',flush=True)
+base_x=(QQ(1)/2,QQ(0))
+base_poly=(P_BLACK+P_WHITE)/2
+base_centers=base_poly.roots(ring=CF,multiplicities=False)
+assert len(base_centers)==110
+base_centers=sorted(base_centers,key=lambda z:(z.real(),z.imag()))
+base_centers,base_boxes=certify_vertex(base_centers,base_x)
+assert len(base_boxes)==110 and pairwise_disjoint(base_boxes)
+
+# Positively oriented square loops, based at 1/2.
+gamma0=[
+    base_x,
+    (QQ(1)/4,QQ(0)),
+    (QQ(1)/4,QQ(1)/4),
+    (-QQ(1)/4,QQ(1)/4),
+    (-QQ(1)/4,-QQ(1)/4),
+    (QQ(1)/4,-QQ(1)/4),
+    (QQ(1)/4,QQ(0)),
+    base_x,
+]
+gamma1=[
+    base_x,
+    (QQ(3)/4,QQ(0)),
+    (QQ(3)/4,-QQ(1)/4),
+    (QQ(5)/4,-QQ(1)/4),
+    (QQ(5)/4,QQ(1)/4),
+    (QQ(3)/4,QQ(1)/4),
+    (QQ(3)/4,QQ(0)),
+    base_x,
+]
+
+start=time.time()
+print('[3/7] certifying monodromy around 0',flush=True)
+sigma0=follow_loop('zero',gamma0,base_centers,base_boxes)
+print('[4/7] certifying monodromy around 1',flush=True)
+sigma1=follow_loop('one',gamma1,base_centers,base_boxes)
+sigma_inf=inverse(compose(sigma0,sigma1))
+
+assert cycle_type(sigma0)=={1:2,3:36}
+assert cycle_type(sigma1)=={2:55}
+assert cycle_type(sigma_inf)=={1:1,4:3,5:7,7:7,13:1}
+print('[5/7] certified cycle types:',cycle_type(sigma0),cycle_type(sigma1),cycle_type(sigma_inf),flush=True)
+
+
+def intertwiner(source,target,image0):
+    n=len(source[0])
+    qmap=[None]*n
+    qmap[0]=image0
+    queue=deque([0])
+    pairs=[]
+    for s,t in zip(source,target):
+        pairs.extend(((s,t),(inverse(s),inverse(t))))
+    while queue:
+        i=queue.popleft(); qi=qmap[i]
+        for s,t in pairs:
+            ni=s[i]; nq=t[qi]
+            if qmap[ni] is None:
+                qmap[ni]=nq; queue.append(ni)
+            elif qmap[ni]!=nq:
+                return None
+    if any(x is None for x in qmap) or len(set(qmap))!=n:
+        return None
+    return tuple(qmap)
+
+
+print('[6/7] checking simultaneous conjugacy with the Sz(8) quotient triple',flush=True)
+conjugator=None; variant=None
+for s0name,s0 in (('sigma0',sigma0),('sigma0^-1',inverse(sigma0))):
+    for trname,tr in (('R',TARGET_R),('R^-1',inverse(TARGET_R))):
+        for tsname,ts in (('S',TARGET_S),('S^-1',inverse(TARGET_S))):
+            for image0 in range(110):
+                qmap=intertwiner((s0,sigma1),(tr,ts),image0)
+                if qmap is not None:
+                    conjugator=qmap
+                    variant=(s0name,trname,tsname,image0)
+                    break
+            if conjugator is not None: break
+        if conjugator is not None: break
+    if conjugator is not None: break
+assert conjugator is not None
+
+elapsed=time.time()-start
+result={
+    'method':'Sage ComplexBallField interval Newton vertices + factorized Rouche continuation',
+    'sage_precision_bits':PREC,
+    'initial_subdivisions_per_polygon_edge':INITIAL_SUBDIVISIONS,
+    'maximum_adaptive_depth_allowed':MAX_DEPTH,
+    'accepted_segments':stats['accepted_segments'],
+    'subdivision_failures':stats['subdivision_failures'],
+    'maximum_depth_used':stats['maximum_depth'],
+    'minimum_vertex_inclusion_margin':str(stats['minimum_vertex_margin']),
+    'minimum_derivative_modulus_lower_bound':str(stats['minimum_derivative_lower_bound']),
+    'minimum_rouche_boundary_margin':str(stats['minimum_rouche_boundary_margin']),
+    'minimum_rouche_allowed_step':str(stats['minimum_rouche_allowed_step']),
+    'minimum_rouche_disk_radius':str(stats['minimum_rouche_disk_radius']),
+    'maximum_rouche_disk_denominator':stats['maximum_rouche_disk_denominator'],
+    'minimum_parameter_clearance_from_0_or_1':str(stats['minimum_parameter_clearance']),
+    'minimum_vertex_root_separation':str(stats['minimum_vertex_separation']),
+    'maximum_vertex_radius_exponent':stats['maximum_vertex_radius_exponent'],
+    'cycle_types':{
+        'zero':cycle_type(sigma0),
+        'one':cycle_type(sigma1),
+        'infinity':cycle_type(sigma_inf),
+    },
+    'simultaneous_conjugacy_variant':variant,
+    'conjugator':list(conjugator),
+    'sigma0':list(sigma0),
+    'sigma1':list(sigma1),
+    'sigma_infinity':list(sigma_inf),
+    'elapsed_seconds':elapsed,
+}
+open('sz8_certified_dessin_result.json','w').write(json.dumps(result,indent=2,sort_keys=True))
+print('[7/7] PASS: certified complex-ball/Rouche monodromy equals the Sz(8) quotient dessin',flush=True)
+print(json.dumps({
+    'accepted_segments':result['accepted_segments'],
+    'maximum_depth_used':result['maximum_depth_used'],
+    'minimum_vertex_inclusion_margin':result['minimum_vertex_inclusion_margin'],
+    'minimum_rouche_boundary_margin':result['minimum_rouche_boundary_margin'],
+    'minimum_rouche_allowed_step':result['minimum_rouche_allowed_step'],
+    'minimum_parameter_clearance_from_0_or_1':result['minimum_parameter_clearance_from_0_or_1'],
+    'simultaneous_conjugacy_variant':result['simultaneous_conjugacy_variant'],
+    'elapsed_seconds':elapsed,
+},indent=2),flush=True)
