@@ -62,7 +62,10 @@ def strict_box_contains(outer, inner):
 
 def certify(z,x,sep):
     last=None
-    for k in range(3,51):
+    # Start with a very tight box and enlarge only if interval rounding
+    # prevents the Newton inclusion.  Tight vertex boxes are essential for
+    # efficient affine-predictor tubes.
+    for k in range(30,2,-1):
         r=RBF(sep/(2^k))
         V=CBF(z).add_error(r)
         try:
@@ -118,7 +121,8 @@ X=CBF(xr,RBF(0))
 slope=CBF((z1-z0)/CF(x1-x0))
 L=CBF(z0)+slope*(X-CBF(x0))
 endpoint_rad=max(RBF(base_balls[0].rad()),RBF(V1.rad()))
-for factor in [2,4,8,16,32,64,128,256,512,1024,2048]:
+for j in range(1,25):
+    factor=2^j
     Y=CBF(0).add_error(endpoint_rad*factor)
     if not ((base_balls[0]-CBF(z0)) in Y):
         continue
