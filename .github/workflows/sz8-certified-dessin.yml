@@ -29,9 +29,14 @@ jobs:
       - name: Stage pinned exact Sz8 surface data
         shell: bash
         run: cp pinned-surface/research/sz8_surface_data.sage /tmp/sz8_surface_data.sage
+      - name: Build exact-step orchestrator
+        shell: bash
+        run: |
+          sed "/sz8_certified_dessin_core_3.sage/a load('research/sz8_certified_dessin_exact_step.sage')" \
+            research/sz8_certified_dessin.sage > /tmp/sz8_certified_dessin_exact.sage
       - name: Certify both dessin generators with Arb and Rouché bounds
         shell: bash
-        run: sage research/sz8_certified_dessin.sage
+        run: sage /tmp/sz8_certified_dessin_exact.sage
       - name: Upload certified monodromy result
         if: always()
         uses: actions/upload-artifact@v4
