@@ -1,0 +1,53 @@
+name: Sz8 elliptic isogeny and point search
+
+on:
+  push:
+    branches: [research-sz8-pari-20260810]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  isogeny:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    container:
+      image: sagemath/sagemath:10.9
+    steps:
+      - name: Compute rational isogenies and direct point searches
+        shell: bash
+        run: |
+          cat > /tmp/isog.sage <<'SAGE'
+          from sage.all import *
+          import inspect
+          E=EllipticCurve(QQ,[0,0,1,-147036293428447300,31096531290525027422504031])
+          print("AINVS",list(E.a_invariants()),flush=True)
+          for name in ["isogenies_prime_degree","isogeny_class","point_search","gens"]:
+              try: print("SIGNATURE",name,inspect.signature(getattr(E,name)),flush=True)
+              except Exception as e: print("SIG_ERROR",name,repr(e),flush=True)
+          for ell in [2,3,5,7,11,13,17,19,37,43,67,163]:
+              try:
+                  iso=E.isogenies_prime_degree(ell)
+                  print("ISOGENIES",ell,len(iso),iso,flush=True)
+                  for phi in iso:
+                      print("CODOMAIN",ell,list(phi.codomain().global_minimal_model().a_invariants()),flush=True)
+              except Exception as e:
+                  print("ISOGENY_ERROR",ell,repr(e),flush=True)
+          try:
+              C=E.isogeny_class()
+              print("ISOGENY_CLASS",C,flush=True)
+              for F in C.curves:
+                  print("CLASS_CURVE",list(F.global_minimal_model().a_invariants()),flush=True)
+          except Exception as e:
+              print("CLASS_ERROR",repr(e),flush=True)
+          for b in [10,20,40,80,120]:
+              try:
+                  pts=E.point_search(b)
+                  print("POINT_SEARCH",b,pts,flush=True)
+                  for P in pts: print("FOUND_POINT",tuple(P),"HEIGHT",P.height(),"ORDER",P.order(),flush=True)
+              except Exception as e:
+                  print("POINT_SEARCH_ERROR",b,repr(e),flush=True)
+          SAGE
+          timeout 26m sage /tmp/isog.sage
