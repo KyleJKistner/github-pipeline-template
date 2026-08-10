@@ -1,0 +1,33 @@
+name: Sz8 Arb certification probe
+
+on:
+  push:
+    branches: [research-sz8-certified-dessin]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    container:
+      image: sagemath/sagemath:10.9
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: 23fdb7c95103a595e6a440595754a15ca1c98104
+          path: pinned-surface
+      - name: Stage pinned exact Sz8 surface data
+        shell: bash
+        run: cp pinned-surface/research/sz8_surface_data.sage /tmp/sz8_surface_data.sage
+      - name: Probe Sage complex-ball API
+        shell: bash
+        run: sage research/arb_probe.sage
+      - name: Probe factorized complex-ball continuation bounds
+        shell: bash
+        run: sage research/sz8_factor_rouche_probe.sage

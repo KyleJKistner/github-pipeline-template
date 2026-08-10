@@ -1,0 +1,46 @@
+name: Sz8 certified dessin exact
+
+on:
+  push:
+    branches: [research-sz8-certified-dessin]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sz8-certified-dessin-exact-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  certify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    container:
+      image: sagemath/sagemath:10.9
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: 23fdb7c95103a595e6a440595754a15ca1c98104
+          path: pinned-surface
+      - name: Stage pinned exact Sz8 surface data
+        shell: bash
+        run: cp pinned-surface/research/sz8_surface_data.sage /tmp/sz8_surface_data.sage
+      - name: Build exact-step orchestrator
+        shell: bash
+        run: |
+          sed "/sz8_certified_dessin_core_3.sage/a load('research/sz8_certified_dessin_exact_step.sage')" \
+            research/sz8_certified_dessin.sage > /tmp/sz8_certified_dessin_exact.sage
+      - name: Certify both dessin generators with Arb and exact Rouché bounds
+        shell: bash
+        run: sage /tmp/sz8_certified_dessin_exact.sage
+      - name: Upload certified monodromy result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sz8-certified-dessin-exact-result
+          path: sz8_certified_dessin_result.json
+          if-no-files-found: warn
