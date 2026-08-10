@@ -18,9 +18,13 @@ jobs:
       image: sagemath/sagemath:10.9
     steps:
       - uses: actions/checkout@v4
-      - name: Fetch pinned exact Sz8 surface data
+      - uses: actions/checkout@v4
+        with:
+          ref: 23fdb7c95103a595e6a440595754a15ca1c98104
+          path: pinned-surface
+      - name: Stage pinned exact Sz8 surface data
         shell: bash
-        run: curl -L --fail --retry 3 https://raw.githubusercontent.com/KyleJKistner/github-pipeline-template/23fdb7c95103a595e6a440595754a15ca1c98104/research/sz8_surface_data.sage -o /tmp/sz8_surface_data.sage
+        run: cp pinned-surface/research/sz8_surface_data.sage /tmp/sz8_surface_data.sage
       - name: Probe Sage complex-ball API
         shell: bash
         run: sage research/arb_probe.sage
