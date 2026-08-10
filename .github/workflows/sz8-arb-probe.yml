@@ -1,4 +1,4 @@
-name: Sz8 Arb API probe
+name: Sz8 Arb certification probe
 
 on:
   push:
@@ -13,11 +13,17 @@ permissions:
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     container:
       image: sagemath/sagemath:10.9
     steps:
       - uses: actions/checkout@v4
+      - name: Fetch pinned exact Sz8 surface data
+        shell: bash
+        run: curl -L --fail --retry 3 https://raw.githubusercontent.com/KyleJKistner/github-pipeline-template/23fdb7c95103a595e6a440595754a15ca1c98104/research/sz8_surface_data.sage -o /tmp/sz8_surface_data.sage
       - name: Probe Sage complex-ball API
         shell: bash
         run: sage research/arb_probe.sage
+      - name: Probe parametric interval Newton
+        shell: bash
+        run: sage research/sz8_interval_newton_probe.sage
