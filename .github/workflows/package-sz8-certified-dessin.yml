@@ -3,6 +3,8 @@ name: Package Sz8 certified dessin
 on:
   push:
     branches: [research-sz8-certified-package]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
