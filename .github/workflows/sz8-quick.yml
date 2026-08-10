@@ -1,7 +1,10 @@
 name: Temporary Sz8 quick invariants
 
 on:
-  workflow_dispatch:
+  push:
+    branches: [research-sz8-closure-20260810]
+  pull_request:
+    branches: [main]
 
 permissions:
   contents: read
@@ -9,33 +12,48 @@ permissions:
 jobs:
   invariants:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     container:
       image: sagemath/sagemath:10.9
     steps:
-      - name: Compute minimal models, local data, and root numbers
+      - uses: actions/checkout@v4
+      - name: Check twists, cusps, and small specializations
         shell: bash
         run: |
           cat > /tmp/quick.sage <<'SAGE'
-          from sage.all import *
-          curves = {
-              "candidate_plus": [0,0,0,-2352580694855156800,1990178002593601755040258000],
-              "candidate_minus": [0,0,0,-2352580694855156800,-1990178002593601755040258000],
-          }
-          for label,a in curves.items():
-              E=EllipticCurve(QQ,a)
-              M=E.global_minimal_model()
-              print("="*80)
-              print("LABEL",label)
-              print("MINIMAL_AINVS",list(M.a_invariants()))
-              print("ISOMORPHISM",E.isomorphism_to(M))
-              print("DISCRIMINANT",M.discriminant())
-              print("CONDUCTOR",M.conductor())
-              print("J",M.j_invariant())
-              print("ROOT_NUMBER",M.root_number())
-              print("TORSION_ORDER",M.torsion_order())
-              print("LOCAL_DATA")
-              for ld in M.local_data():
-                  print(ld)
+          load('research/sz8_surface_data.sage')
+          print('BELYI_IDENTITY_OK', Q2*A^3-F/C == B^2)
+          print('DELTA_IDENTITY_OK', Delta == Delta_factored)
+          print('CUBIC_DISCRIMINANT', factor((N-u*H).discriminant(t)))
+          print('Q2_PULLBACK', factor(H^2*Q2(N/H)))
+
+          # At H=0 the monic leading term of B gives c6 = 13*N^58;
+          # hence -c6 has squareclass -13.  Twisting by -13 makes the
+          # rational I_13 cusps split.
+          for r in [QQ(5)/13, QQ(20)/13]:
+              cv = c6(r)
+              print('H_CUSP', r, 'N', N(r), 'c6', cv, 'minus_c6_squareclass', QQ(-cv).squarefree_part())
+              for d in [1,-13,13,-1]:
+                  print('H_CUSP_TWIST', r, d, 'squareclass', QQ(-d^3*cv).squarefree_part())
+
+          targets=[QQ(-10)/13,QQ(10)/13,QQ(0),QQ(1),QQ(15)/13]
+          hard=EllipticCurve(QQ,[0,0,0,-2352580694855156800,1990178002593601755040258000])
+          print('HARD_J',hard.j_invariant())
+          for tt in targets:
+              print('='*100)
+              print('TARGET',tt,'U',u_map(tt))
+              for d in [1,-13,13,-1]:
+                  try:
+                      E=fiber(tt,d); M=E.global_minimal_model()
+                      print('TWIST',d)
+                      print('ORIGINAL_AINVS',list(E.a_invariants()))
+                      print('MINIMAL_AINVS',list(M.a_invariants()))
+                      print('J',M.j_invariant())
+                      print('J_EQUALS_HARD',M.j_invariant()==hard.j_invariant())
+                      print('CONDUCTOR',M.conductor())
+                      print('ROOT_NUMBER',M.root_number())
+                      print('TORSION',M.torsion_order())
+                  except Exception as exc:
+                      print('ERROR',tt,d,repr(exc))
           SAGE
           sage /tmp/quick.sage
