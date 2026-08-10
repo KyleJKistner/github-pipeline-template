@@ -112,8 +112,9 @@ V1,k1,N1=certify(z1,x1,sep)
 print('VERTEX_RADIUS_EXPONENT',k1,flush=True)
 
 mid=(z0+z1)/2
+endpoint_rad=max(RBF(base_balls[0].rad()),RBF(V1.rad()))
 for factor in [QQ(3)/4,QQ(7)/8,QQ(1),QQ(5)/4,QQ(3)/2,QQ(2),QQ(3),QQ(4)]:
-    rad=RBF(abs(z1-z0)*factor)+max(base_balls[0].rad(),V1.rad())*4
+    rad=RBF(abs(z1-z0)*factor)+endpoint_rad*4
     Z=CBF(mid).add_error(rad)
     xr=RBF((x0+x1)/2).add_error(RBF(abs(x1-x0)/2))
     X=CBF(xr,RBF(0))
