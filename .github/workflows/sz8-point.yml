@@ -1,42 +1,13 @@
-name: Temporary Sz8 point search
+name: Temporary Sz8 point search (legacy)
 
 on:
-  push:
-    branches:
-      - research-sz8-rank-20260809
-  pull_request:
-    branches:
-      - main
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  ratpoints-search:
+  legacy:
     runs-on: ubuntu-latest
-    timeout-minutes: 32
-    strategy:
-      fail-fast: false
-      matrix:
-        height: [8, 12, 16, 20]
-    container:
-      image: sagemath/sagemath:10.9
     steps:
-      - name: Search directly for a non-torsion point
-        shell: bash
-        run: |
-          cat > /tmp/search.sage <<'SAGE'
-          from sage.all import *
-          from sage.libs.eclib.interface import mwrank_EllipticCurve, mwrank_MordellWeil
-
-          ainvs = [0, 0, 1, -147036293428447300, 31096531290525027422504031]
-          C = mwrank_EllipticCurve(ainvs, verbose=True)
-          MW = mwrank_MordellWeil(C, verbose=True, pp=1, maxr=1)
-          print("AINVS", C.ainvs(), flush=True)
-          print("HEIGHT_LIMIT", ${{ matrix.height }}, flush=True)
-          MW.search(height_limit=${{ matrix.height }}, verbose=True)
-          print("RANK_FOUND", MW.rank(), flush=True)
-          print("POINTS", MW.points(), flush=True)
-          print("SUBGROUP", MW, flush=True)
-          SAGE
-          timeout 28m sage /tmp/search.sage
+      - run: echo 'Legacy exploratory workflow disabled; use sz8-targets.yml.'
