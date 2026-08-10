@@ -3,6 +3,8 @@ name: Sz8 Arb API probe
 on:
   push:
     branches: [research-sz8-certified-dessin]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
