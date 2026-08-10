@@ -1,0 +1,54 @@
+name: Temporary Sz8 Heegner point computation
+
+on:
+  push:
+    branches:
+      - research-sz8-rank-20260809
+
+permissions:
+  contents: read
+
+jobs:
+  heegner:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    container:
+      image: sagemath/sagemath:10.9
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compute analytic rank and a Heegner point on the t=0 fiber
+        shell: bash
+        run: |
+          cat > /tmp/heegner.sage <<'SAGE'
+          load('research/sz8_surface_data.sage')
+          from sage.libs.pari import pari
+
+          t0 = QQ(0)
+          E = fiber(t0)
+          M = E.global_minimal_model()
+          phi = E.isomorphism_to(M)
+          print('TARGET', t0, flush=True)
+          print('U_VALUE', u_map(t0), flush=True)
+          print('ORIGINAL_AINVS', list(E.a_invariants()), flush=True)
+          print('MINIMAL_AINVS', list(M.a_invariants()), flush=True)
+          print('ISOMORPHISM', phi, flush=True)
+          print('CONDUCTOR', M.conductor(), flush=True)
+          print('ROOT_NUMBER', M.root_number(), flush=True)
+
+          EP = pari.ellinit(list(M.a_invariants()))
+          ar = pari.ellanalyticrank(EP)
+          print('PARI_ANALYTIC_RANK', ar, flush=True)
+          if ZZ(ar[0]) != 1:
+              raise RuntimeError('selected fiber does not have analytic rank one')
+          hp = pari.ellheegner(EP)
+          print('PARI_HEEGNER_RAW', hp, flush=True)
+          x = QQ(hp[0]); y = QQ(hp[1])
+          P = M(x,y)
+          print('MINIMAL_POINT', tuple(P), flush=True)
+          print('POINT_ORDER', P.order(), flush=True)
+          print('POINT_HEIGHT', P.height(), flush=True)
+          Q = (~phi)(P)
+          print('ORIGINAL_POINT', tuple(Q), flush=True)
+          print('CHECK_MINIMAL', M.defining_polynomial()(P[0],P[1],P[2]) if hasattr(M,'defining_polynomial') else 'constructed', flush=True)
+          SAGE
+          timeout 42m sage /tmp/heegner.sage
