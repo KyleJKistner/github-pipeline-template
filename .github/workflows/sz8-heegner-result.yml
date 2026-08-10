@@ -1,0 +1,59 @@
+name: Sz8 Heegner result writer
+
+on:
+  push:
+    branches: [research-sz8-heegner-result]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  compute:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    container:
+      image: sagemath/sagemath:10.9
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compute and verify a rational point
+        shell: bash
+        run: |
+          set -o pipefail
+          cat > /tmp/find_point.py <<'PY'
+          from cypari2 import Pari
+          from fractions import Fraction
+          from pathlib import Path
+
+          pari=Pari()
+          pari.set_real_precision(192)
+          a=[0,0,1,-147036293428447300,31096531290525027422504031]
+          E=pari.ellinit(a)
+          lines=[]
+          def emit(*xs):
+              s=" ".join(map(str,xs)); print(s,flush=True); lines.append(s)
+          emit("AINVS",a)
+          emit("GLOBALRED",pari.ellglobalred(E))
+          emit("ROOTNO",pari.ellrootno(E))
+          emit("ANALYTIC_RANK",pari.ellanalyticrank(E))
+          P=pari.ellheegner(E)
+          emit("HEEGNER_POINT",P)
+          emit("ON_CURVE",pari.ellisoncurve(E,P))
+          emit("CANONICAL_HEIGHT",pari.ellheight(E,P))
+          # Multiples provide an additional exact consistency check.
+          for n in [2,3,5,7]:
+              Q=pari.ellmul(E,P,n)
+              emit("MULTIPLE",n,Q,"ON_CURVE",pari.ellisoncurve(E,Q))
+          Path("sz8_heegner_result.txt").write_text("\n".join(lines)+"\n")
+          PY
+          timeout 110m sage -python /tmp/find_point.py | tee sz8_heegner_console.txt
+      - name: Commit result to computation branch
+        if: success()
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add sz8_heegner_result.txt sz8_heegner_console.txt
+          git commit -m 'chore: record Sz8 Heegner computation result' || exit 0
+          git push origin HEAD:research-sz8-heegner-result
