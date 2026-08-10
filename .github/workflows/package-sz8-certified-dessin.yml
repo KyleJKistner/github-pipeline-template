@@ -1,0 +1,47 @@
+name: Package Sz8 certified dessin
+
+on:
+  push:
+    branches: [research-sz8-certified-package]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: 23fdb7c95103a595e6a440595754a15ca1c98104
+          path: pinned-surface
+      - name: Assemble certificate source package
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p sz8-certified-dessin-source
+          cp pinned-surface/research/sz8_surface_data.sage sz8-certified-dessin-source/
+          cp research/sz8_certified_dessin*.sage sz8-certified-dessin-source/
+          cp research/sz8_factor_rouche_probe.sage sz8-certified-dessin-source/
+          cat > sz8-certified-dessin-source/README.txt <<'EOF'
+          Certified Sz(8) dessin source package
+
+          Main entry point:
+            sage sz8_certified_dessin.sage
+
+          In the CI proof run, sz8_certified_dessin_exact_step.sage is loaded
+          immediately after core_3. It replaces the provisional floating
+          parameter-step norm by an outward-rounded Arb norm computed from the
+          exact rational segment endpoints and sets the initial mesh to 1/64.
+
+          Exact surface data are pinned to commit:
+            23fdb7c95103a595e6a440595754a15ca1c98104
+          EOF
+          tar -czf sz8-certified-dessin-source.tar.gz sz8-certified-dessin-source
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sz8-certified-dessin-source
+          path: sz8-certified-dessin-source.tar.gz
