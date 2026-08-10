@@ -1,6 +1,9 @@
 # Certification patch: compute every parameter-step length from the exact
 # rational real and imaginary increments, with outward-rounded Arb sqrt.
 # This replaces the provisional ComplexField absolute value in core_3.
+# The preliminary run showed that every 1/32 edge step bisected exactly
+# once and that the 1/64 children certified, so begin at that mesh directly.
+INITIAL_SUBDIVISIONS=64
 
 
 def exact_parameter_distance(x0,x1):
