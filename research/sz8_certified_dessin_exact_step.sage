@@ -26,7 +26,7 @@ def certify_rouche_segment(x0,centers0,boxes0,x1,centers1,boxes1):
     # exactly one root throughout the parameter segment.
     for i in range(110):
         for j in range(i+1,110):
-            dist=(CBF(centers0[i])-CBF(centers0[j])).abs().lower()
+            dist=RBF((CBF(centers0[i])-CBF(centers0[j])).abs().lower())
             if not data[i]['radius']+data[j]['radius'] < dist:
                 raise CertificationFailure('Rouche disks overlap')
 
@@ -37,7 +37,7 @@ def certify_rouche_segment(x0,centers0,boxes0,x1,centers1,boxes1):
     for i,d in enumerate(data):
         matches=[]
         for j,Vj in enumerate(boxes1):
-            if (Vj-CBF(d['center'])).abs().upper() < d['radius']:
+            if RBF((Vj-CBF(d['center'])).abs().upper()) < d['radius']:
                 matches.append(j)
         if len(matches)!=1 or matches[0] in used:
             raise CertificationFailure(
