@@ -101,6 +101,8 @@ print('BASE_ROOTS_CERTIFIED',len(base_balls),flush=True)
 print('MIN_BASE_SEPARATION',min(seps),flush=True)
 print('BASE_RADIUS_EXPONENT_RANGE',min(ks),max(ks),flush=True)
 
+# Probe a short validated continuation segment with an affine predictor
+# z = L(x) + y.  Interval Newton certifies the small correction y.
 x1=QQ(499)/1000
 z0=centers[0]
 z1=z0
@@ -111,24 +113,30 @@ sep=min(abs(z1-w) for w in all1 if abs(z1-w)>RealField(PREC)(2)^(-PREC/3))
 V1,k1,N1=certify(z1,x1,sep)
 print('VERTEX_RADIUS_EXPONENT',k1,flush=True)
 
-mid=(z0+z1)/2
+xr=RBF((x0+x1)/2).add_error(RBF(abs(x1-x0)/2))
+X=CBF(xr,RBF(0))
+slope=CBF((z1-z0)/CF(x1-x0))
+L=CBF(z0)+slope*(X-CBF(x0))
 endpoint_rad=max(RBF(base_balls[0].rad()),RBF(V1.rad()))
-for factor in [QQ(3)/4,QQ(7)/8,QQ(1),QQ(5)/4,QQ(3)/2,QQ(2),QQ(3),QQ(4)]:
-    rad=RBF(abs(z1-z0)*factor)+endpoint_rad*4
-    Z=CBF(mid).add_error(rad)
-    xr=RBF((x0+x1)/2).add_error(RBF(abs(x1-x0)/2))
-    X=CBF(xr,RBF(0))
+for factor in [2,4,8,16,32,64,128,256,512,1024,2048]:
+    Y=CBF(0).add_error(endpoint_rad*factor)
+    if not ((base_balls[0]-CBF(z0)) in Y):
+        continue
+    predicted1=CBF(z0)+slope*(CBF(x1)-CBF(x0))
+    if not ((V1-predicted1) in Y):
+        continue
     try:
-        der=dF_ball(Z,X)
+        der=dF_ball(L+Y,X)
     except ZeroDivisionError:
         continue
     if der.contains_zero():
         continue
-    Nt=CBF(mid)-F_ball(CBF(mid),X)/der
-    if strict_box_contains(Z,Nt):
-        print('TUBE_FACTOR',factor,flush=True)
-        print('TUBE_STRICT',True,flush=True)
+    image=-F_ball(L,X)/der
+    if strict_box_contains(Y,image):
+        print('PREDICTOR_FACTOR',factor,flush=True)
+        print('PREDICTOR_IMAGE',image,flush=True)
+        print('PREDICTOR_STRICT',True,flush=True)
         break
 else:
-    raise RuntimeError('no certified tube')
+    raise RuntimeError('no certified affine-predictor tube')
 print('[PASS] certified interval-Newton probe',flush=True)
