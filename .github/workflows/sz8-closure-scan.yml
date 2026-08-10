@@ -1,0 +1,125 @@
+name: Sz8 closure fiber scan
+
+on:
+  push:
+    branches: [research-sz8-closure-20260810]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  SAGE_NUM_THREADS: 1
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0,1,2,3,4,5,6,7,8,9,10,11]
+    container:
+      image: sagemath/sagemath:10.9
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scan rational parameters on the exact surface
+        shell: bash
+        run: |
+          cat > /tmp/scan.sage <<'SAGE'
+          load('research/sz8_surface_data.sage')
+          import json, math, os, time
+
+          shard = int(os.environ['SHARD'])
+          nshards = 12
+          records = []
+          failures = []
+          index = 0
+
+          # Dense low-height search, plus the natural denominator-13 line.
+          params = set()
+          for b in range(1, 21):
+              for a in range(-40, 41):
+                  if gcd(a,b) == 1:
+                      params.add(QQ(a)/b)
+          for a in range(-100, 101):
+              params.add(QQ(a)/13)
+          params = sorted(params, key=lambda x: (max(abs(x.numerator()), x.denominator()), x.denominator(), x.numerator()))
+
+          for t0 in params:
+              if index % nshards != shard:
+                  index += 1
+                  continue
+              index += 1
+              try:
+                  if H(t0) == 0 or Delta(t0) == 0:
+                      continue
+                  E = fiber(t0)
+                  M = E.global_minimal_model()
+                  w = ZZ(M.root_number())
+                  if w != -1:
+                      continue
+                  Ncond = ZZ(M.conductor())
+                  ainvs = [str(x) for x in M.a_invariants()]
+                  disc = ZZ(M.discriminant())
+                  rec = {
+                      't': str(t0),
+                      'u': str(u_map(t0)),
+                      'conductor': str(Ncond),
+                      'conductor_digits': len(str(abs(Ncond))),
+                      'ainvs': ainvs,
+                      'disc_digits': len(str(abs(disc))),
+                      'root_number': -1,
+                      'torsion_order': int(M.torsion_order()),
+                      'coeff_score': max(len(str(abs(ZZ(x)))) for x in M.a_invariants()),
+                  }
+                  records.append(rec)
+                  print('FOUND', json.dumps(rec, sort_keys=True), flush=True)
+              except Exception as exc:
+                  failures.append({'t': str(t0), 'error': repr(exc)})
+                  print('FAIL', t0, repr(exc), flush=True)
+
+          records.sort(key=lambda r: (int(r['conductor']), r['coeff_score']))
+          with open('/tmp/scan-%02d.json' % shard, 'w') as f:
+              json.dump({'shard': shard, 'records': records, 'failures': failures}, f, indent=2, sort_keys=True)
+          print('SHARD_SUMMARY', shard, 'root_minus', len(records), 'failures', len(failures), flush=True)
+          print('SHARD_TOP', json.dumps(records[:20], sort_keys=True), flush=True)
+          SAGE
+          SHARD=${{ matrix.shard }} timeout 50m sage /tmp/scan.sage
+      - uses: actions/upload-artifact@v4
+        with:
+          name: scan-${{ matrix.shard }}
+          path: /tmp/scan-${{ matrix.shard }}.json
+          if-no-files-found: error
+
+  aggregate:
+    needs: scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: scan-*
+          path: scan-results
+          merge-multiple: true
+      - name: Aggregate candidates
+        shell: bash
+        run: |
+          python - <<'PY'
+          import glob, json
+          records=[]; failures=[]
+          for p in glob.glob('scan-results/*.json'):
+              d=json.load(open(p)); records += d['records']; failures += d['failures']
+          records.sort(key=lambda r:(int(r['conductor']),r['coeff_score']))
+          out={'records':records,'failures':failures}
+          json.dump(out,open('sz8-scan-aggregate.json','w'),indent=2,sort_keys=True)
+          print('TOTAL_ROOT_MINUS',len(records))
+          print('TOTAL_FAILURES',len(failures))
+          print('TOP_100')
+          print(json.dumps(records[:100],indent=2,sort_keys=True))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sz8-scan-aggregate
+          path: sz8-scan-aggregate.json
+          if-no-files-found: error
