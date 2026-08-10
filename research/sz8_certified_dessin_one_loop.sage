@@ -8,6 +8,16 @@ load('research/sz8_certified_dessin_core_3.sage')
 load('research/sz8_certified_dessin_exact_step.sage')
 load('research/sz8_certified_dessin_core_4.sage')
 
+
+def json_safe(x):
+    if isinstance(x,dict):
+        return {str(k):json_safe(v) for k,v in x.items()}
+    if isinstance(x,(list,tuple)):
+        return [json_safe(v) for v in x]
+    if isinstance(x,Integer):
+        return int(x)
+    return x
+
 loop_name=os.environ.get('SZ8_LOOP')
 if loop_name not in ('zero','one'):
     raise RuntimeError('SZ8_LOOP must be zero or one')
@@ -71,6 +81,7 @@ result={
     'permutation':list(perm),
     'elapsed_seconds':time.time()-start,
 }
+result=json_safe(result)
 path='sz8_certified_loop_%s.json' % loop_name
 open(path,'w').write(json.dumps(result,indent=2,sort_keys=True))
 print('[4/4] PASS:',loop_name,'generator certified; output',path,flush=True)
