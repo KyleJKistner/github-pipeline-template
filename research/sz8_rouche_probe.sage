@@ -24,44 +24,46 @@ def shifted_coefficients(P, center):
     return out
 
 
+def ub(x):
+    return RBF(x.abs().upper())
+
+
+def lb(x):
+    return RBF(x.abs().lower())
+
+
 def rouche_data(index, x, centers, boxes):
     z = centers[index]
     Fx = (1-x)*Pblack+x*Pwhite
     ac = shifted_coefficients(Fx,z)
     bc = shifted_coefficients(Pdelta,z)
-    clearance = min((CBF(z)-boxes[j]).abs().lower()
+    clearance = min(RBF((CBF(z)-boxes[j]).abs().lower())
                     for j in range(len(boxes)) if j != index)
-    box_radius = (boxes[index]-CBF(z)).abs().upper()
+    box_radius = RBF((boxes[index]-CBF(z)).abs().upper())
     best = None
-    # Search from a large disk downward.  Every disk stays disjoint from all
+    # Search from a large disk downward. Every disk stays disjoint from all
     # other certified root boxes by construction.
     for k in range(2,31):
         r = RBF(clearance/(2^k))
-        if not box_radius < r:
+        if not (box_radius < r):
             continue
-        main = ac[1].abs().lower()*r
-        tail = ac[0].abs().upper()
-        rp = RBF(1)
+        main = lb(ac[1])*r
+        tail = ub(ac[0])
+        term_power = r^2
         for j in range(2,len(ac)):
-            rp *= r if j > 2 else r^2
-            if j == 2:
-                term_power = r^2
-            else:
+            if j > 2:
                 term_power *= r
-            tail += ac[j].abs().upper()*term_power
+            tail += ub(ac[j])*term_power
         lower = main-tail
-        if not lower > 0:
+        if not (lower > 0):
             continue
         variation = RBF(0)
         term_power = RBF(1)
         for j in range(len(bc)):
             if j > 0:
                 term_power *= r
-            variation += bc[j].abs().upper()*term_power
-        if variation == 0:
-            allowed = RBF('+inf')
-        else:
-            allowed = lower/variation
+            variation += ub(bc[j])*term_power
+        allowed = RBF('+inf') if variation == 0 else lower/variation
         best = {
             'radius_exponent': k,
             'radius': r,
@@ -86,7 +88,7 @@ worst=[i for i,d in enumerate(all_data) if d['allowed_parameter_step']==minimum]
 print('ROUCHE_MIN_ALLOWED_STEP',minimum,flush=True)
 print('ROUCHE_WORST_ROOT',worst,flush=True)
 print('ROUCHE_WORST_DATA',all_data[worst],flush=True)
-for p in range(4,25):
+for p in range(4,31):
     if RBF(QQ(1)/(2^p)) < minimum:
         print('ROUCHE_UNIFORM_DYADIC_POWER',p,flush=True)
         break
