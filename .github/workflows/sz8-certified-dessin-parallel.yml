@@ -1,0 +1,64 @@
+name: Sz8 certified dessin parallel
+
+on:
+  push:
+    branches: [research-sz8-certified-parallel]
+  pull_request:
+    branches: [research-sz8-certified-package]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sz8-certified-dessin-parallel-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  loop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        loop: [zero, one]
+    container:
+      image: sagemath/sagemath:10.9
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: 23fdb7c95103a595e6a440595754a15ca1c98104
+          path: pinned-surface
+      - name: Stage pinned exact Sz8 surface data
+        shell: bash
+        run: cp pinned-surface/research/sz8_surface_data.sage /tmp/sz8_surface_data.sage
+      - name: Certify the ${{ matrix.loop }} monodromy loop
+        shell: bash
+        env:
+          SZ8_LOOP: ${{ matrix.loop }}
+        run: sage research/sz8_certified_dessin_one_loop.sage
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sz8-certified-loop-${{ matrix.loop }}
+          path: sz8_certified_loop_${{ matrix.loop }}.json
+          if-no-files-found: error
+
+  combine:
+    needs: loop
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: sz8-certified-loop-*
+          path: loops
+      - name: Combine the certified permutations exactly
+        shell: bash
+        run: python research/sz8_certified_dessin_combine.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sz8-certified-dessin-parallel-result
+          path: sz8_certified_dessin_parallel_result.json
+          if-no-files-found: error
